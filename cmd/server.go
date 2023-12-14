@@ -66,7 +66,7 @@ func serverHandle(_ *cobra.Command, _ []string) {
 		log.SetOutput(w)
 	}
 	limiter.Init()
-	log.Info("Start V2bX...")
+	log.Info("火箭启动 · >>>>")
 	vc, err := vCore.NewCore(c.CoresConfig)
 	if err != nil {
 		log.WithField("err", err).Error("new core failed")
