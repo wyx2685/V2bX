@@ -158,7 +158,7 @@ func getCore(c *conf.XrayConfig) *core.Instance {
 	if err != nil {
 		log.WithField("err", err).Panic("failed to create instance")
 	}
-	log.Info("Xray Core Version: ", core.Version())
+	log.Info("当前版本: ", core.Version())
 	return server
 }
 
