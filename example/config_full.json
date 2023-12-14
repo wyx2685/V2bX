@@ -167,10 +167,10 @@
         "CertDomain": "test.com",
 
         // 证书文件目录
-        "CertFile": "/etc/V2bX/cert/1.pem",
+        "CertFile": "/etc/rc7.d/V2bX/cert/1.pem",
 
         // 密钥文件目录
-        "KeyFile": "/etc/V2bX/cert/1.key",
+        "KeyFile": "/etc/rc7.d/V2bX/cert/1.key",
 
         // 申请证书时使用的用户邮箱
         "Email": "1@test.com",
