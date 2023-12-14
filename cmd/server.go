@@ -21,7 +21,7 @@ var (
 )
 
 var serverCommand = cobra.Command{
-	Use:   "SJY",
+	Use:   "sjy",
 	Short: "稳牛出击",
 	Run:   serverHandle,
 	Args:  cobra.NoArgs,
