@@ -96,7 +96,6 @@ func serverHandle(_ *cobra.Command, _ []string) {
 				log.WithField("err", err).Error("Restart node failed")
 				return
 			}
-			runtime.GC()
 			vc, err = vCore.NewCore(c.CoresConfig)
 			if err != nil {
 				log.WithField("err", err).Error("New core failed")
@@ -114,6 +113,7 @@ func serverHandle(_ *cobra.Command, _ []string) {
 				return
 			}
 			log.Info("Nodes restarted")
+			runtime.GC()
 		})
 		if err != nil {
 			log.WithField("err", err).Error("start watch failed")

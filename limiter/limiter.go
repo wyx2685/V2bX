@@ -45,6 +45,7 @@ type Limiter struct {
 type UserLimitInfo struct {
 	UID               int
 	SpeedLimit        int
+	DeviceLimit       int
 	DynamicSpeedLimit int
 	ExpireTime        int64
 }
@@ -60,13 +61,15 @@ func AddLimiter(tag string, l *conf.LimitConfig, users []panel.UserInfo) *Limite
 	uuidmap := make(map[string]int)
 	for i := range users {
 		uuidmap[users[i].Uuid] = users[i].Id
+		userLimit := &UserLimitInfo{}
+		userLimit.UID = users[i].Id
 		if users[i].SpeedLimit != 0 {
-			userLimit := &UserLimitInfo{
-				UID:        users[i].Id,
-				SpeedLimit: users[i].SpeedLimit,
-			}
-			info.UserLimitInfo.Store(format.UserTag(tag, users[i].Uuid), userLimit)
+			userLimit.SpeedLimit = users[i].SpeedLimit
 		}
+		if users[i].DeviceLimit != 0 {
+			userLimit.DeviceLimit = users[i].DeviceLimit
+		}
+		info.UserLimitInfo.Store(format.UserTag(tag, users[i].Uuid), userLimit)
 	}
 	info.UUIDtoUID = uuidmap
 	limitLock.Lock()
@@ -97,14 +100,17 @@ func (l *Limiter) UpdateUser(tag string, added []panel.UserInfo, deleted []panel
 		delete(l.UUIDtoUID, deleted[i].Uuid)
 	}
 	for i := range added {
-		if added[i].SpeedLimit != 0 {
-			userLimit := &UserLimitInfo{
-				UID:        added[i].Id,
-				SpeedLimit: added[i].SpeedLimit,
-				ExpireTime: 0,
-			}
-			l.UserLimitInfo.Store(format.UserTag(tag, added[i].Uuid), userLimit)
+		userLimit := &UserLimitInfo{
+			UID: added[i].Id,
 		}
+		if added[i].SpeedLimit != 0 {
+			userLimit.SpeedLimit = added[i].SpeedLimit
+			userLimit.ExpireTime = 0
+		}
+		if added[i].DeviceLimit != 0 {
+			userLimit.DeviceLimit = added[i].DeviceLimit
+		}
+		l.UserLimitInfo.Store(format.UserTag(tag, added[i].Uuid), userLimit)
 		l.UUIDtoUID[added[i].Uuid] = added[i].Id
 	}
 }
@@ -120,23 +126,27 @@ func (l *Limiter) UpdateDynamicSpeedLimit(tag, uuid string, limit int, expire ti
 	return nil
 }
 
-func (l *Limiter) CheckLimit(email string, ip string, isTcp bool) (Bucket *ratelimit.Bucket, Reject bool) {
+func (l *Limiter) CheckLimit(taguuid string, ip string, isTcp bool) (Bucket *ratelimit.Bucket, Reject bool) {
 	// ip and conn limiter
-	if l.ConnLimiter.AddConnCount(email, ip, isTcp) {
+	if l.ConnLimiter.AddConnCount(taguuid, ip, isTcp) {
 		return nil, true
 	}
 	// check and gen speed limit Bucket
 	nodeLimit := l.SpeedLimit
 	userLimit := 0
-	if v, ok := l.UserLimitInfo.Load(email); ok {
+	deviceLimit := 0
+	var uid int
+	if v, ok := l.UserLimitInfo.Load(taguuid); ok {
 		u := v.(*UserLimitInfo)
+		deviceLimit = u.DeviceLimit
+		uid = u.UID
 		if u.ExpireTime < time.Now().Unix() && u.ExpireTime != 0 {
 			if u.SpeedLimit != 0 {
 				userLimit = u.SpeedLimit
 				u.DynamicSpeedLimit = 0
 				u.ExpireTime = 0
 			} else {
-				l.UserLimitInfo.Delete(email)
+				l.UserLimitInfo.Delete(taguuid)
 			}
 		} else {
 			userLimit = determineSpeedLimit(u.SpeedLimit, u.DynamicSpeedLimit)
@@ -145,10 +155,9 @@ func (l *Limiter) CheckLimit(email string, ip string, isTcp bool) (Bucket *ratel
 
 	// Store online user for device limit
 	ipMap := new(sync.Map)
-	uid := l.UUIDtoUID[email]
 	ipMap.Store(ip, uid)
 	// If any device is online
-	if v, ok := l.UserOnlineIP.LoadOrStore(email, ipMap); ok {
+	if v, ok := l.UserOnlineIP.LoadOrStore(taguuid, ipMap); ok {
 		ipMap := v.(*sync.Map)
 		// If this is a new ip
 		if _, ok := ipMap.LoadOrStore(ip, uid); !ok {
@@ -157,16 +166,20 @@ func (l *Limiter) CheckLimit(email string, ip string, isTcp bool) (Bucket *ratel
 				counter++
 				return true
 			})
+			if counter > deviceLimit && deviceLimit > 0 {
+				ipMap.Delete(ip)
+				return nil, true
+			}
 		}
 	}
 
 	limit := int64(determineSpeedLimit(nodeLimit, userLimit)) * 1000000 / 8 // If you need the Speed limit
 	if limit > 0 {
 		Bucket = ratelimit.NewBucketWithQuantum(time.Second, limit, limit) // Byte/s
-		if v, ok := l.SpeedLimiter.LoadOrStore(email, Bucket); ok {
+		if v, ok := l.SpeedLimiter.LoadOrStore(taguuid, Bucket); ok {
 			return v.(*ratelimit.Bucket), false
 		} else {
-			l.SpeedLimiter.Store(email, Bucket)
+			l.SpeedLimiter.Store(taguuid, Bucket)
 			return Bucket, false
 		}
 	} else {

@@ -58,22 +58,24 @@ func parseConnectionConfig(c *conf.XrayConnectionConfig) (policy *coreConf.Polic
 func getCore(c *conf.XrayConfig) *core.Instance {
 	os.Setenv("XRAY_LOCATION_ASSET", c.AssetPath)
 	// Log Config
-	coreLogConfig := &coreConf.LogConfig{}
-	coreLogConfig.LogLevel = c.LogConfig.Level
-	coreLogConfig.AccessLog = c.LogConfig.AccessPath
-	coreLogConfig.ErrorLog = c.LogConfig.ErrorPath
+	coreLogConfig := &coreConf.LogConfig{
+		LogLevel:  c.LogConfig.Level,
+		AccessLog: c.LogConfig.AccessPath,
+		ErrorLog:  c.LogConfig.ErrorPath,
+	}
 	// DNS config
 	coreDnsConfig := &coreConf.DNSConfig{}
 	os.Setenv("XRAY_DNS_PATH", "")
 	if c.DnsConfigPath != "" {
-		f, err := os.OpenFile(c.DnsConfigPath, os.O_RDWR|os.O_CREATE, 0755)
+		data, err := os.ReadFile(c.DnsConfigPath)
 		if err != nil {
-			log.Error("Failed to open or create xray dns config file: %v", err)
-		}
-		defer f.Close()
-		if err := json.NewDecoder(f).Decode(coreDnsConfig); err != nil {
-			log.Error(fmt.Sprintf("Failed to unmarshal xray dns config from file '%v': %v. Using default DNS options.", f.Name(), err))
+			log.Error(fmt.Sprintf("Failed to read xray dns config file: %v", err))
 			coreDnsConfig = &coreConf.DNSConfig{}
+		} else {
+			if err := json.Unmarshal(data, coreDnsConfig); err != nil {
+				log.Error(fmt.Sprintf("Failed to unmarshal xray dns config: %v. Using default DNS options.", err))
+				coreDnsConfig = &coreConf.DNSConfig{}
+			}
 		}
 		os.Setenv("XRAY_DNS_PATH", c.DnsConfigPath)
 	}
@@ -84,25 +86,27 @@ func getCore(c *conf.XrayConfig) *core.Instance {
 	// Routing config
 	coreRouterConfig := &coreConf.RouterConfig{}
 	if c.RouteConfigPath != "" {
-		if f, err := os.Open(c.RouteConfigPath); err != nil {
+		data, err := os.ReadFile(c.RouteConfigPath)
+		if err != nil {
 			log.WithField("err", err).Panic("Failed to read Routing config file")
 		} else {
-			if err = json.NewDecoder(f).Decode(coreRouterConfig); err != nil {
+			if err = json.Unmarshal(data, coreRouterConfig); err != nil {
 				log.WithField("err", err).Panic("Failed to unmarshal Routing config")
 			}
 		}
 	}
 	routeConfig, err := coreRouterConfig.Build()
 	if err != nil {
-		log.WithField("err", err).Panic("Failed to understand Routing config  Please check: https://xtls.github.io/config/routing.html")
+		log.WithField("err", err).Panic("Failed to understand Routing config. Please check: https://xtls.github.io/config/routing.html for help")
 	}
 	// Custom Inbound config
 	var coreCustomInboundConfig []coreConf.InboundDetourConfig
 	if c.InboundConfigPath != "" {
-		if f, err := os.Open(c.InboundConfigPath); err != nil {
+		data, err := os.ReadFile(c.InboundConfigPath)
+		if err != nil {
 			log.WithField("err", err).Panic("Failed to read Custom Inbound config file")
 		} else {
-			if err = json.NewDecoder(f).Decode(&coreCustomInboundConfig); err != nil {
+			if err = json.Unmarshal(data, &coreCustomInboundConfig); err != nil {
 				log.WithField("err", err).Panic("Failed to unmarshal Custom Inbound config")
 			}
 		}
@@ -111,17 +115,18 @@ func getCore(c *conf.XrayConfig) *core.Instance {
 	for _, config := range coreCustomInboundConfig {
 		oc, err := config.Build()
 		if err != nil {
-			log.WithField("err", err).Panic("Failed to understand Inbound config, Please check: https://xtls.github.io/config/inbound.html for help")
+			log.WithField("err", err).Panic("Failed to understand Inbound config. Please check: https://xtls.github.io/config/inbound.html for help")
 		}
 		inBoundConfig = append(inBoundConfig, oc)
 	}
 	// Custom Outbound config
 	var coreCustomOutboundConfig []coreConf.OutboundDetourConfig
 	if c.OutboundConfigPath != "" {
-		if f, err := os.Open(c.OutboundConfigPath); err != nil {
+		data, err := os.ReadFile(c.OutboundConfigPath)
+		if err != nil {
 			log.WithField("err", err).Panic("Failed to read Custom Outbound config file")
 		} else {
-			if err = json.NewDecoder(f).Decode(&coreCustomOutboundConfig); err != nil {
+			if err = json.Unmarshal(data, &coreCustomOutboundConfig); err != nil {
 				log.WithField("err", err).Panic("Failed to unmarshal Custom Outbound config")
 			}
 		}

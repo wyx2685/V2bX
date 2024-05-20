@@ -105,9 +105,17 @@ func buildInbound(option *conf.Options, nodeInfo *panel.NodeInfo, tag string) (*
 		// Reality
 		in.StreamSetting.Security = "reality"
 		v := nodeInfo.VAllss
+		dest := v.TlsSettings.Dest
+		if dest == "" {
+			dest = v.TlsSettings.ServerName
+		}
+		xver := v.TlsSettings.Xver
+		if xver == 0 {
+			xver = v.RealityConfig.Xver
+		}
 		d, err := json.Marshal(fmt.Sprintf(
 			"%s:%s",
-			v.TlsSettings.ServerName,
+			dest,
 			v.TlsSettings.ServerPort))
 		if err != nil {
 			return nil, fmt.Errorf("marshal reality dest error: %s", err)
@@ -115,7 +123,7 @@ func buildInbound(option *conf.Options, nodeInfo *panel.NodeInfo, tag string) (*
 		mtd, _ := time.ParseDuration(v.RealityConfig.MaxTimeDiff)
 		in.StreamSetting.REALITYSettings = &coreConf.REALITYConfig{
 			Dest:         d,
-			Xver:         v.RealityConfig.Xver,
+			Xver:         xver,
 			ServerNames:  []string{v.TlsSettings.ServerName},
 			PrivateKey:   v.TlsSettings.PrivateKey,
 			MinClientVer: v.RealityConfig.MinClientVer,

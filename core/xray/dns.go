@@ -2,14 +2,15 @@ package xray
 
 import (
 	"bytes"
-	"github.com/InazumaV/V2bX/api/panel"
-	"github.com/goccy/go-json"
-	log "github.com/sirupsen/logrus"
-	coreConf "github.com/xtls/xray-core/infra/conf"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/InazumaV/V2bX/api/panel"
+	"github.com/goccy/go-json"
+	log "github.com/sirupsen/logrus"
+	coreConf "github.com/xtls/xray-core/infra/conf"
 )
 
 func updateDNSConfig(node *panel.NodeInfo) (err error) {
@@ -62,7 +63,7 @@ func saveDnsConfig(dns []byte, dnsPath string) (err error) {
 	}
 	if !bytes.Equal(currentData, dns) {
 		coreDnsConfig := &coreConf.DNSConfig{}
-		if err = json.NewDecoder(bytes.NewReader(dns)).Decode(coreDnsConfig); err != nil {
+		if err = json.Unmarshal(dns, coreDnsConfig); err != nil {
 			log.WithField("err", err).Error("Failed to unmarshal DNS config")
 		}
 		_, err := coreDnsConfig.Build()

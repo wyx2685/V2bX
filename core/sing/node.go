@@ -26,6 +26,15 @@ type HttpNetworkConfig struct {
 	} `json:"header"`
 }
 
+type HttpRequest struct {
+	Version string   `json:"version"`
+	Method  string   `json:"method"`
+	Path    []string `json:"path"`
+	Headers struct {
+		Host []string `json:"Host"`
+	} `json:"headers"`
+}
+
 type WsNetworkConfig struct {
 	Path    string            `json:"path"`
 	Headers map[string]string `json:"headers"`
@@ -82,7 +91,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 			Enabled:    true,
 			ShortID:    []string{v.TlsSettings.ShortId},
 			PrivateKey: v.TlsSettings.PrivateKey,
-			Xver:       v.TlsSettings.Xver,
+			Xver:       uint8(v.TlsSettings.Xver),
 			Handshake: option.InboundRealityHandshakeOptions{
 				ServerOptions: option.ServerOptions{
 					Server:     dest,
@@ -109,10 +118,19 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 				if err != nil {
 					return option.Inbound{}, fmt.Errorf("decode NetworkSettings error: %s", err)
 				}
+				//Todo fix http options
 				if network.Header.Type == "http" {
 					t.Type = network.Header.Type
-					//Todo fix http options
-					//t.HTTPOptions.Host =
+					var request HttpRequest
+					if network.Header.Request != nil {
+						err = json.Unmarshal(*network.Header.Request, &request)
+						if err != nil {
+							return option.Inbound{}, fmt.Errorf("decode HttpRequest error: %s", err)
+						}
+						t.HTTPOptions.Host = request.Headers.Host
+						t.HTTPOptions.Path = request.Path[0]
+						t.HTTPOptions.Method = request.Method
+					}
 				} else {
 					t.Type = ""
 				}
@@ -205,12 +223,62 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 			Password: randomPasswd,
 		}}
 	case "trojan":
+		n := info.Trojan
+		t := option.V2RayTransportOptions{
+			Type: n.Network,
+		}
+		switch n.Network {
+		case "tcp":
+			t.Type = ""
+		case "ws":
+			var (
+				path    string
+				ed      int
+				headers map[string]option.Listable[string]
+			)
+			if len(n.NetworkSettings) != 0 {
+				network := WsNetworkConfig{}
+				err := json.Unmarshal(n.NetworkSettings, &network)
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("decode NetworkSettings error: %s", err)
+				}
+				var u *url.URL
+				u, err = url.Parse(network.Path)
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("parse path error: %s", err)
+				}
+				path = u.Path
+				ed, _ = strconv.Atoi(u.Query().Get("ed"))
+				headers = make(map[string]option.Listable[string], len(network.Headers))
+				for k, v := range network.Headers {
+					headers[k] = option.Listable[string]{
+						v,
+					}
+				}
+			}
+			t.WebsocketOptions = option.V2RayWebsocketOptions{
+				Path:                path,
+				EarlyDataHeaderName: "Sec-WebSocket-Protocol",
+				MaxEarlyData:        uint32(ed),
+				Headers:             headers,
+			}
+		case "grpc":
+			if len(n.NetworkSettings) != 0 {
+				err := json.Unmarshal(n.NetworkSettings, &t.GRPCOptions)
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("decode NetworkSettings error: %s", err)
+				}
+			}
+		default:
+			t.Type = ""
+		}
 		in.Type = "trojan"
 		in.TrojanOptions = option.TrojanInboundOptions{
 			ListenOptions: listen,
 			InboundTLSOptionsContainer: option.InboundTLSOptionsContainer{
 				TLS: &tls,
 			},
+			Transport: &t,
 		}
 		if c.SingOptions.FallBackConfigs != nil {
 			// fallback handling

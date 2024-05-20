@@ -29,24 +29,35 @@ func (c *Client) GetUserList() (UserList []UserInfo, err error) {
 	const path = "/api/v1/server/UniProxy/user"
 	r, err := c.client.R().
 		SetHeader("If-None-Match", c.userEtag).
+		ForceContentType("application/json").
 		Get(path)
-	err = c.checkResponse(r, path, err)
-	if err != nil {
+	if err = c.checkResponse(r, path, err); err != nil {
 		return nil, err
 	}
 
-	if r.StatusCode() == 304 {
-		return nil, nil
+	if r != nil {
+		defer func() {
+			if r.RawBody() != nil {
+				r.RawBody().Close()
+			}
+		}()
+		if r.StatusCode() == 304 {
+			return nil, nil
+		}
+	} else {
+		return nil, fmt.Errorf("received nil response")
 	}
 	var userList *UserListBody
-	err = json.Unmarshal(r.Body(), &userList)
 	if err != nil {
+		return nil, fmt.Errorf("read body error: %s", err)
+	}
+	if err := json.Unmarshal(r.Body(), &userList); err != nil {
 		return nil, fmt.Errorf("unmarshal userlist error: %s", err)
 	}
 	c.userEtag = r.Header().Get("ETag")
 
 	var userinfos []UserInfo
-	var localDeviceLimit int = 0
+	var deviceLimit, localDeviceLimit int = 0, 0
 	for _, user := range userList.Users {
 		// If there is still device available, add the user
 		if user.DeviceLimit > 0 && user.AliveIp > 0 {
@@ -57,13 +68,14 @@ func (c *Client) GetUserList() (UserList []UserInfo, err error) {
 			// If there are any available device.
 			localDeviceLimit = user.DeviceLimit - user.AliveIp + lastOnline
 			if localDeviceLimit > 0 {
-
+				deviceLimit = localDeviceLimit
 			} else if lastOnline > 0 {
-
+				deviceLimit = lastOnline
 			} else {
 				continue
 			}
 		}
+		user.DeviceLimit = deviceLimit
 		userinfos = append(userinfos, user)
 	}
 

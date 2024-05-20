@@ -70,13 +70,15 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 		err = b.inbounds[p.Tag].(*inbound.Hysteria).AddUsers(us)
 	case "hysteria2":
 		us := make([]option.Hysteria2User, len(p.Users))
+		id := make([]int, len(p.Users))
 		for i := range p.Users {
 			us[i] = option.Hysteria2User{
 				Name:     p.Users[i].Uuid,
 				Password: p.Users[i].Uuid,
 			}
+			id[i] = p.Users[i].Id
 		}
-		err = b.inbounds[p.Tag].(*inbound.Hysteria2).AddUsers(us)
+		err = b.inbounds[p.Tag].(*inbound.Hysteria2).AddUsers(us, id)
 	}
 	if err != nil {
 		return 0, err

@@ -1,7 +1,9 @@
 package panel
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -78,7 +80,7 @@ type TlsSettings struct {
 	ServerPort string `json:"server_port"`
 	ShortId    string `json:"short_id"`
 	PrivateKey string `json:"private_key"`
-	Xver       uint8  `json:"xver,string"`
+	Xver       uint64 `json:"xver,string"`
 }
 
 type RealityConfig struct {
@@ -94,7 +96,11 @@ type ShadowsocksNode struct {
 	ServerKey string `json:"server_key"`
 }
 
-type TrojanNode CommonNode
+type TrojanNode struct {
+	CommonNode
+	Network         string          `json:"network"`
+	NetworkSettings json.RawMessage `json:"networkSettings"`
+}
 
 type HysteriaNode struct {
 	CommonNode
@@ -126,12 +132,31 @@ func (c *Client) GetNodeInfo() (node *NodeInfo, err error) {
 	r, err := c.client.
 		R().
 		SetHeader("If-None-Match", c.nodeEtag).
+		ForceContentType("application/json").
 		Get(path)
+
+	if r.StatusCode() == 304 {
+		return nil, nil
+	}
+	hash := sha256.Sum256(r.Body())
+	newBodyHash := hex.EncodeToString(hash[:])
+	if c.responseBodyHash == newBodyHash {
+		return nil, nil
+	}
+	c.responseBodyHash = newBodyHash
+	c.nodeEtag = r.Header().Get("ETag")
 	if err = c.checkResponse(r, path, err); err != nil {
 		return nil, err
 	}
-	if r.StatusCode() == 304 {
-		return nil, nil
+
+	if r != nil {
+		defer func() {
+			if r.RawBody() != nil {
+				r.RawBody().Close()
+			}
+		}()
+	} else {
+		return nil, fmt.Errorf("received nil response")
 	}
 	node = &NodeInfo{
 		Id:   c.NodeId,
@@ -188,7 +213,7 @@ func (c *Client) GetNodeInfo() (node *NodeInfo, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("decode trojan params error: %s", err)
 		}
-		cm = (*CommonNode)(rsp)
+		cm = &rsp.CommonNode
 		node.Trojan = rsp
 		node.Security = Tls
 	case "hysteria":
@@ -260,8 +285,7 @@ func (c *Client) GetNodeInfo() (node *NodeInfo, err error) {
 	cm.Routes = nil
 	cm.BaseConfig = nil
 
-	c.nodeEtag = r.Header().Get("ETag")
-	return
+	return node, nil
 }
 
 func intervalToTime(i interface{}) time.Duration {

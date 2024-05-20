@@ -23,6 +23,7 @@ type Client struct {
 	NodeId           int
 	nodeEtag         string
 	userEtag         string
+	responseBodyHash string
 	LastReportOnline map[int]int
 }
 

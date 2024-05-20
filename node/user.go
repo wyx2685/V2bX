@@ -82,29 +82,24 @@ func (c *Controller) reportUserTrafficTask() (err error) {
 }
 
 func compareUserList(old, new []panel.UserInfo) (deleted, added []panel.UserInfo) {
-	tmp := map[string]struct{}{}
-	tmp2 := map[string]struct{}{}
-	for i := range old {
-		tmp[old[i].Uuid+strconv.Itoa(old[i].SpeedLimit)] = struct{}{}
+	oldMap := make(map[string]int)
+	for i, user := range old {
+		key := user.Uuid + strconv.Itoa(user.SpeedLimit)
+		oldMap[key] = i
 	}
-	l := len(tmp)
-	for i := range new {
-		e := new[i].Uuid + strconv.Itoa(new[i].SpeedLimit)
-		tmp[e] = struct{}{}
-		tmp2[e] = struct{}{}
-		if l != len(tmp) {
-			added = append(added, new[i])
-			l++
+
+	for _, user := range new {
+		key := user.Uuid + strconv.Itoa(user.SpeedLimit)
+		if _, exists := oldMap[key]; !exists {
+			added = append(added, user)
+		} else {
+			delete(oldMap, key)
 		}
 	}
-	tmp = nil
-	l = len(tmp2)
-	for i := range old {
-		tmp2[old[i].Uuid+strconv.Itoa(old[i].SpeedLimit)] = struct{}{}
-		if l != len(tmp2) {
-			deleted = append(deleted, old[i])
-			l++
-		}
+
+	for _, index := range oldMap {
+		deleted = append(deleted, old[index])
 	}
+
 	return deleted, added
 }

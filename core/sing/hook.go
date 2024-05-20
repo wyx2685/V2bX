@@ -8,6 +8,7 @@ import (
 
 	"github.com/sagernet/sing-box/common/urltest"
 
+	"github.com/InazumaV/V2bX/common/format"
 	"github.com/InazumaV/V2bX/common/rate"
 
 	"github.com/InazumaV/V2bX/limiter"
@@ -95,7 +96,7 @@ func (h *HookServer) RoutedConnection(_ context.Context, conn net.Conn, m adapte
 		return conn, t
 	}
 	ip := m.Source.Addr.String()
-	if b, r := l.CheckLimit(m.User, ip, true); r {
+	if b, r := l.CheckLimit(format.UserTag(m.Inbound, m.User), ip, true); r {
 		conn.Close()
 		log.Error("[", m.Inbound, "] ", "Limited ", m.User, " by ip or conn")
 		return conn, t
@@ -149,7 +150,7 @@ func (h *HookServer) RoutedPacketConnection(_ context.Context, conn N.PacketConn
 		return conn, t
 	}
 	ip := m.Source.Addr.String()
-	if b, r := l.CheckLimit(m.User, ip, true); r {
+	if b, r := l.CheckLimit(format.UserTag(m.Inbound, m.User), ip, true); r {
 		conn.Close()
 		log.Error("[", m.Inbound, "] ", "Limited ", m.User, " by ip or conn")
 		return conn, t

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - dev_new
     paths:
       - "**/*.go"
       - "go.mod"
@@ -108,7 +109,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.21.4'
+          go-version: '1.22.0'
 
       - name: Get project dependencies
         run: go mod download
@@ -124,13 +125,13 @@ jobs:
         run: |
           echo "version: $version"
           mkdir -p build_assets
-          go build -v -o build_assets/V2bX -tags "sing xray with_reality_server with_quic with_grpc with_utls with_wireguard with_acme" -trimpath -ldflags "-X 'github.com/InazumaV/V2bX/cmd.version=$version' -s -w -buildid="
+          go build -v -o build_assets/V2bX -tags "sing xray hysteria2 with_reality_server with_quic with_grpc with_utls with_wireguard with_acme" -trimpath -ldflags "-X 'github.com/InazumaV/V2bX/cmd.version=$version' -s -w -buildid="
 
       - name: Build Mips softfloat V2bX
         if: matrix.goarch == 'mips' || matrix.goarch == 'mipsle'
         run: |
           echo "version: $version"
-          GOMIPS=softfloat go build -v -o build_assets/V2bX_softfloat -tags "sing xray with_reality_server with_quic with_grpc with_utls with_wireguard with_acme" -trimpath -ldflags "-X 'github.com/InazumaV/V2bX/cmd.version=$version' -s -w -buildid="
+          GOMIPS=softfloat go build -v -o build_assets/V2bX_softfloat -tags "sing xray hysteria2 with_reality_server with_quic with_grpc with_utls with_wireguard with_acme" -trimpath -ldflags "-X 'github.com/InazumaV/V2bX/cmd.version=$version' -s -w -buildid="
       - name: Rename Windows V2bX
         if: matrix.goos == 'windows'
         run: |
@@ -141,16 +142,13 @@ jobs:
           cp ${GITHUB_WORKSPACE}/README.md ./build_assets/README.md
           cp ${GITHUB_WORKSPACE}/LICENSE ./build_assets/LICENSE
           cp ${GITHUB_WORKSPACE}/example/*.json ./build_assets/
-          LIST=('geoip geoip geoip' 'domain-list-community dlc geosite')
+          LIST=('geoip' 'geosite')
           for i in "${LIST[@]}"
           do
-            INFO=($(echo $i | awk 'BEGIN{FS=" ";OFS=" "} {print $1,$2,$3}'))
-            FILE_NAME="${INFO[2]}.dat"
-            echo -e "Downloading ${FILE_NAME}..."
-            curl -L "https://github.com/v2fly/${INFO[0]}/releases/latest/download/${INFO[1]}.dat" -o ./build_assets/${FILE_NAME}
-            echo -e "Verifying HASH key..."
-            HASH="$(curl -sL "https://github.com/v2fly/${INFO[0]}/releases/latest/download/${INFO[1]}.dat.sha256sum" | awk -F ' ' '{print $1}')"
-            [ "$(sha256sum "./build_assets/${FILE_NAME}" | awk -F ' ' '{print $1}')" == "${HASH}" ] || { echo -e "The HASH key of ${FILE_NAME} does not match cloud one."; exit 1; }
+            DOWNLOAD_URL="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/${i}.dat"
+            FILE_NAME="${i}.dat"
+            echo -e "Downloading ${DOWNLOAD_URL}..."
+            curl -L "${DOWNLOAD_URL}" -o ./build_assets/${FILE_NAME}
           done
       - name: Create ZIP archive
         shell: bash

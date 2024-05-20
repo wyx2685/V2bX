@@ -113,6 +113,7 @@ type Options struct {
 	RawOptions             json.RawMessage `json:"RawOptions"`
 	XrayOptions            *XrayOptions    `json:"XrayOptions"`
 	SingOptions            *SingOptions    `json:"SingOptions"`
+	Hysteria2ConfigPath    string          `json:"Hysteria2ConfigPath"`
 	CertConfig             *CertConfig     `json:"CertConfig"`
 }
 
@@ -129,6 +130,9 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 	case "sing":
 		o.SingOptions = NewSingOptions()
 		return json.Unmarshal(data, o.SingOptions)
+	case "hysteria2":
+		o.RawOptions = data
+		return nil
 	default:
 		o.Core = ""
 		o.RawOptions = data

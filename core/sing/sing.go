@@ -3,6 +3,7 @@ package sing
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/sagernet/sing-box/log"
@@ -38,14 +39,13 @@ func init() {
 func New(c *conf.CoreConfig) (vCore.Core, error) {
 	options := option.Options{}
 	if len(c.SingConfig.OriginalPath) != 0 {
-		f, err := os.Open(c.SingConfig.OriginalPath)
+		data, err := os.ReadFile(c.SingConfig.OriginalPath)
 		if err != nil {
-			return nil, fmt.Errorf("open original config error: %s", err)
+			return nil, fmt.Errorf("read original config error: %s", err)
 		}
-		defer f.Close()
-		err = json.NewDecoder(f).Decode(&options)
+		err = json.Unmarshal(data, &options)
 		if err != nil {
-			return nil, fmt.Errorf("decode original config error: %s", err)
+			return nil, fmt.Errorf("unmarshal original config error: %s", err)
 		}
 	}
 	options.Log = &option.LogOptions{
@@ -68,17 +68,24 @@ func New(c *conf.CoreConfig) (vCore.Core, error) {
 			return nil, fmt.Errorf("failed to open or create sing dns config file: %s", err)
 		}
 		defer f.Close()
-		if err := json.NewDecoder(f).Decode(options.DNS); err != nil {
+		data, err := io.ReadAll(f)
+		if err != nil {
 			log.Warn(fmt.Sprintf(
-				"Failed to unmarshal sing dns config from file '%v': %v. Using default DNS options",
+				"Failed to read sing dns config from file '%v': %v. Using default DNS options",
 				f.Name(), err))
 			options.DNS = &option.DNSOptions{}
+		} else {
+			if err := json.Unmarshal(data, options.DNS); err != nil {
+				log.Warn(fmt.Sprintf(
+					"Failed to unmarshal sing dns config from file '%v': %v. Using default DNS options",
+					f.Name(), err))
+				options.DNS = &option.DNSOptions{}
+			}
 		}
 		os.Setenv("SING_DNS_PATH", c.SingConfig.DnsConfigPath)
 	}
-	ctx := context.Background()
 	b, err := box.New(box.Options{
-		Context: ctx,
+		Context: context.Background(),
 		Options: options,
 	})
 	if err != nil {

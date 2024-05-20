@@ -12,4 +12,6 @@ app/legocmd/.lego/
 example/.lego
 example/cert
 ./vscode
+output/*
 .idea/*
+newV2bX.sh

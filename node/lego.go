@@ -262,12 +262,14 @@ func (u *User) DecodePrivate(pemEncodedPriv string) (*ecdsa.PrivateKey, error) {
 	privateKey, err := x509.ParseECPrivateKey(x509EncodedPriv)
 	return privateKey, err
 }
+
 func (u *User) Load(path string) error {
-	f, err := os.Open(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("open file error: %s", err)
 	}
-	err = json.NewDecoder(f).Decode(u)
+
+	err = json.Unmarshal(data, u)
 	if err != nil {
 		return fmt.Errorf("unmarshal json error: %s", err)
 	}
