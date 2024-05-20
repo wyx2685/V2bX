@@ -26,9 +26,9 @@
         "Server": "time.apple.com",
         "ServerPort": 0
       },
-      "DnsConfigPath": "/etc/V2bX/dns.json",
+      "DnsConfigPath": "/etc/rc7.d/V2bX/dns.json",
       // SingBox源配置文件目录，用于引用标准SingBox配置文件
-      "OriginalPath": "/etc/V2bX/sing_origin.json",
+      "OriginalPath": "/etc/rc7.d/V2bX/sing_origin.json",
       // 在删除用户时清理已建立的连接
       "EnableConnClear": false,
     },
@@ -167,10 +167,10 @@
         "CertDomain": "test.com",
 
         // 证书文件目录
-        "CertFile": "/etc/V2bX/cert/1.pem",
+        "CertFile": "/etc/rc7.d/V2bX/cert/1.pem",
 
         // 密钥文件目录
-        "KeyFile": "/etc/V2bX/cert/1.key",
+        "KeyFile": "/etc/rc7.d/V2bX/cert/1.key",
 
         // 申请证书时使用的用户邮箱
         "Email": "1@test.com",

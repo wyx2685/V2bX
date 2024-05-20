@@ -150,7 +150,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 			c.userReportPeriodic.Close()
 			_ = c.userReportPeriodic.Start(false)
 		}
-		log.WithField("tag", c.tag).Infof("Added %d new users", len(c.userList))
+		log.WithField("tag", c.tag).Infof("新增 %d 位", len(c.userList))
 		// exit
 		return nil
 	}

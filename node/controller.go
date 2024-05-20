@@ -44,15 +44,15 @@ func (c *Controller) Start() error {
 	var err error
 	node, err := c.apiClient.GetNodeInfo()
 	if err != nil {
-		return fmt.Errorf("get node info error: %s", err)
+		return fmt.Errorf("获取节点信息错误: %s", err)
 	}
 	// Update user
 	c.userList, err = c.apiClient.GetUserList()
 	if err != nil {
-		return fmt.Errorf("get user list error: %s", err)
+		return fmt.Errorf("获取用户列表错误: %s", err)
 	}
 	if len(c.userList) == 0 {
-		return errors.New("add users error: not have any user")
+		return errors.New("添加用户错误:没有任何用户")
 	}
 	if len(c.Options.Name) == 0 {
 		c.tag = c.buildNodeTag(node)
@@ -64,19 +64,19 @@ func (c *Controller) Start() error {
 	l := limiter.AddLimiter(c.tag, &c.LimitConfig, c.userList)
 	// add rule limiter
 	if err = l.UpdateRule(&node.Rules); err != nil {
-		return fmt.Errorf("update rule error: %s", err)
+		return fmt.Errorf("更新规则错误: %s", err)
 	}
 	c.limiter = l
 	if node.Security == panel.Tls {
 		err = c.requestCert()
 		if err != nil {
-			return fmt.Errorf("request cert error: %s", err)
+			return fmt.Errorf("请求证书错误: %s", err)
 		}
 	}
 	// Add new tag
 	err = c.server.AddNode(c.tag, node, c.Options)
 	if err != nil {
-		return fmt.Errorf("add new node error: %s", err)
+		return fmt.Errorf("添加新节点错误: %s", err)
 	}
 	added, err := c.server.AddUsers(&vCore.AddUsersParams{
 		Tag:      c.tag,
@@ -84,9 +84,9 @@ func (c *Controller) Start() error {
 		NodeInfo: node,
 	})
 	if err != nil {
-		return fmt.Errorf("add users error: %s", err)
+		return fmt.Errorf("添加用户错误: %s", err)
 	}
-	log.WithField("tag", c.tag).Infof("Added %d new users", added)
+	log.WithField("tag", c.tag).Infof("新增 %d 位", added)
 	c.info = node
 	c.startTasks(node)
 	return nil
