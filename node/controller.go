@@ -125,3 +125,22 @@ func (c *Controller) Close() error {
 func (c *Controller) buildNodeTag(node *panel.NodeInfo) string {
 	return fmt.Sprintf("[%s]-%s:%d", c.apiClient.APIHost, node.Type, node.Id)
 }
+
+// Add updateUserStatus function
+func (c *Controller) updateUserStatus() {
+    // Clearing AliveMap for users whose UUIDs have changed
+    for _, user := range c.userList {
+        if user.UUIDChanged { 
+            c.limiter.UserOnlineIP.Delete(format.UserTag(c.tag, user.Uuid))
+            delete(c.limiter.AliveMap, user.Id)
+        }
+    }
+    
+    // Update device information online
+    updatedAliveMap, err := c.apiClient.GetUserAlive()
+    if err == nil {
+        c.limiter.AliveList = updatedAliveMap
+    } else {
+        log.WithError(err).Error("Failed to update user alive list")
+    }
+}
