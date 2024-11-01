@@ -424,8 +424,11 @@ func extractPortFromAddr(addr string) int {
 }
 
 func formatAddress(ip string, port int) string {
-	if strings.Contains(ip, ":") {
-		return fmt.Sprintf("[%s]:%d", ip, port)
-	}
-	return fmt.Sprintf("%s:%d", ip, port)
+    if ip == "" { 
+        return fmt.Sprintf(":%d", port)
+    }
+    if strings.Contains(ip, ":") { 
+        return fmt.Sprintf("[%s]:%d", ip, port)
+    }
+    return fmt.Sprintf("%s:%d", ip, port) ]
 }
