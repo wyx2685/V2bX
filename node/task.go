@@ -172,6 +172,10 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 		c.limiter.AliveList = newA
 	}
 	// node no changed, check users
+	if newU == nil {
+		// ETag 304 Not Modified - no changes detected by server
+		return nil
+	}
 	if len(newU) == 0 {
 		return nil
 	}

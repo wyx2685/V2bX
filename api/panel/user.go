@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/vmihailenco/msgpack"
@@ -32,8 +33,19 @@ type AliveMap struct {
 // GetUserList will pull user from v2board
 func (c *Client) GetUserList() ([]UserInfo, error) {
 	const path = "/api/v1/server/UniProxy/user"
+
+	// Force refresh every 5 minutes to ensure speed limit changes are detected
+	// even if ETag suggests no changes (server-side ETag bug workaround)
+	now := time.Now()
+	forceRefresh := now.Sub(c.lastUserFetch) > 5*time.Minute
+
+	etag := c.userEtag
+	if forceRefresh {
+		etag = "" // Clear ETag to force fresh fetch
+	}
+
 	r, err := c.client.R().
-		SetHeader("If-None-Match", c.userEtag).
+		SetHeader("If-None-Match", etag).
 		SetHeader("X-Response-Format", "msgpack").
 		SetDoNotParseResponse(true).
 		Get(path)
@@ -42,7 +54,7 @@ func (c *Client) GetUserList() ([]UserInfo, error) {
 	}
 	defer r.RawResponse.Body.Close()
 
-	if r.StatusCode() == 304 {
+	if r.StatusCode() == 304 && !forceRefresh {
 		return nil, nil
 	}
 
@@ -65,6 +77,7 @@ func (c *Client) GetUserList() ([]UserInfo, error) {
 		}
 	}
 	c.userEtag = r.Header().Get("ETag")
+	c.lastUserFetch = now
 	return userlist.Users, nil
 }
 

@@ -26,6 +26,7 @@ type Client struct {
 	responseBodyHash string
 	UserList         *UserListBody
 	AliveMap         *AliveMap
+	lastUserFetch    time.Time
 }
 
 func New(c *conf.ApiConfig) (*Client, error) {
