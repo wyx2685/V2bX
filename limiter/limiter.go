@@ -89,12 +89,16 @@ func DeleteLimiter(tag string) {
 
 func (l *Limiter) UpdateUser(tag string, added []panel.UserInfo, deleted []panel.UserInfo) {
 	for i := range deleted {
-		l.UserLimitInfo.Delete(format.UserTag(tag, deleted[i].Uuid))
-		l.UserOnlineIP.Delete(format.UserTag(tag, deleted[i].Uuid))
+		userTag := format.UserTag(tag, deleted[i].Uuid)
+		l.UserLimitInfo.Delete(userTag)
+		l.UserOnlineIP.Delete(userTag)
+		// Clear the speed limiter cache for this user
+		l.SpeedLimiter.Delete(userTag)
 		delete(l.UUIDtoUID, deleted[i].Uuid)
 		delete(l.AliveList, deleted[i].Id)
 	}
 	for i := range added {
+		userTag := format.UserTag(tag, added[i].Uuid)
 		userLimit := &UserLimitInfo{
 			UID: added[i].Id,
 		}
@@ -106,8 +110,10 @@ func (l *Limiter) UpdateUser(tag string, added []panel.UserInfo, deleted []panel
 			userLimit.DeviceLimit = added[i].DeviceLimit
 		}
 		userLimit.OverLimit = false
-		l.UserLimitInfo.Store(format.UserTag(tag, added[i].Uuid), userLimit)
+		l.UserLimitInfo.Store(userTag, userLimit)
 		l.UUIDtoUID[added[i].Uuid] = added[i].Id
+		// Clear the speed limiter cache for this user to force recreation with new limits
+		l.SpeedLimiter.Delete(userTag)
 	}
 }
 
