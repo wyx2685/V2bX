@@ -22,7 +22,7 @@ func buildTrojanUser(tag string, userInfo *panel.UserInfo) (user *protocol.User)
 	}
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid),
+		Email:   format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid),
 		Account: serial.ToTypedMessage(trojanAccount),
 	}
 }

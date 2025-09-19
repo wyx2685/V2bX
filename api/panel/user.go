@@ -18,6 +18,7 @@ type OnlineUser struct {
 type UserInfo struct {
 	Id          int    `json:"id" msgpack:"id"`
 	Uuid        string `json:"uuid" msgpack:"uuid"`
+	Email       string `json:"email" msgpack:"email"`
 	SpeedLimit  int    `json:"speed_limit" msgpack:"speed_limit"`
 	DeviceLimit int    `json:"device_limit" msgpack:"device_limit"`
 }

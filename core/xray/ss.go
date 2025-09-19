@@ -28,7 +28,7 @@ func buildSSUser(tag string, userInfo *panel.UserInfo, cypher string, serverKey 
 		}
 		return &protocol.User{
 			Level:   0,
-			Email:   format.UserTag(tag, userInfo.Uuid),
+			Email:   format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid),
 			Account: serial.ToTypedMessage(ssAccount),
 		}
 	} else {
@@ -42,11 +42,11 @@ func buildSSUser(tag string, userInfo *panel.UserInfo, cypher string, serverKey 
 			keyLength = 32
 		}
 		ssAccount := &shadowsocks_2022.Account{
-			Key:   base64.StdEncoding.EncodeToString([]byte(userInfo.Uuid[:keyLength])),
+			Key: base64.StdEncoding.EncodeToString([]byte(userInfo.Uuid[:keyLength])),
 		}
 		return &protocol.User{
 			Level:   0,
-			Email:   format.UserTag(tag, userInfo.Uuid),
+			Email:   format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid),
 			Account: serial.ToTypedMessage(ssAccount),
 		}
 	}

@@ -24,7 +24,7 @@ func buildVmessUser(tag string, userInfo *panel.UserInfo) (user *protocol.User) 
 	}
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid), // Uid: InboundTag|email
+		Email:   format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid), // Uid: InboundTag|email
 		Account: serial.ToTypedMessage(vmessAccount.Build()),
 	}
 }
@@ -44,7 +44,7 @@ func buildVlessUser(tag string, userInfo *panel.UserInfo, flow string) (user *pr
 	vlessAccount.Flow = flow
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid),
+		Email:   format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid),
 		Account: serial.ToTypedMessage(vlessAccount),
 	}
 }

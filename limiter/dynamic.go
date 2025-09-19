@@ -12,7 +12,7 @@ func (l *Limiter) AddDynamicSpeedLimit(tag string, userInfo *panel.UserInfo, lim
 		DynamicSpeedLimit: limitNum,
 		ExpireTime:        time.Now().Add(time.Duration(expire) * time.Second).Unix(),
 	}
-	l.UserLimitInfo.Store(format.UserTag(tag, userInfo.Uuid), userLimit)
+	l.UserLimitInfo.Store(format.UserEmailTag(tag, userInfo.Email, userInfo.Uuid), userLimit)
 	return nil
 }
 
