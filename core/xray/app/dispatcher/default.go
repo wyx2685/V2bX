@@ -579,6 +579,27 @@ func (d *DefaultDispatcher) routedDispatch(ctx context.Context, link *transport.
 			common.Interrupt(link.Reader)
 			return
 		}
+	}
+
+	if handler == nil && l != nil && sessionInbound.User != nil {
+		email := sessionInbound.User.Email
+		if strings.Contains(email, "|") {
+			parts := strings.Split(email, "|")
+			if len(parts) > 1 {
+				uuid := parts[1]
+				if outTag := l.GetUserRoute(uuid); outTag != "" {
+					if h := d.ohm.GetHandler(outTag); h != nil {
+						isPickRoute = 3 // Custom pick route status
+						errors.LogInfo(ctx, "Hit User Route rule: taking detour [", outTag, "] for user [", uuid, "]")
+						handler = h
+					}
+				}
+			}
+		}
+	}
+
+	if handler != nil {
+		// already handled
 	} else if d.router != nil {
 		if route, err := d.router.PickRoute(routingLink); err == nil {
 			outTag := route.GetOutboundTag()

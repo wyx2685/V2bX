@@ -30,6 +30,7 @@ type Limiter struct {
 	UserLimitInfo *sync.Map      // Key: TagUUID value: UserLimitInfo
 	SpeedLimiter  *sync.Map      // key: TagUUID, value: *ratelimit.Bucket
 	AliveList     map[int]int    // Key: Uid, value: alive_ip
+	UserRoutes    map[string]string // Key: UUID, value: OutboundTag
 }
 
 type UserLimitInfo struct {
@@ -49,6 +50,7 @@ func AddLimiter(tag string, l *conf.LimitConfig, users []panel.UserInfo, aliveLi
 		SpeedLimiter:  new(sync.Map),
 		AliveList:     aliveList,
 		OldUserOnline: new(sync.Map),
+		UserRoutes:    make(map[string]string),
 	}
 	uuidmap := make(map[string]int)
 	for i := range users {

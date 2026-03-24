@@ -35,3 +35,11 @@ func (l *Limiter) UpdateRule(rule *panel.Rules) error {
 	l.ProtocolRules = rule.Protocol
 	return nil
 }
+
+func (l *Limiter) GetUserRoute(uuid string) string {
+	return l.UserRoutes[uuid]
+}
+
+func (l *Limiter) UpdateUserRoute(routes map[string]string) {
+	l.UserRoutes = routes
+}

@@ -49,6 +49,7 @@ type CommonNode struct {
 
 type Route struct {
 	Id          int         `json:"id"`
+	Remarks     string      `json:"remarks"`
 	Match       interface{} `json:"match"`
 	Action      string      `json:"action"`
 	ActionValue string      `json:"action_value"`
@@ -310,7 +311,6 @@ func (c *Client) GetNodeInfo() (node *NodeInfo, err error) {
 
 	node.Common = cm
 	// clear
-	cm.Routes = nil
 	cm.BaseConfig = nil
 
 	return node, nil

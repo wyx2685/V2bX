@@ -2,13 +2,16 @@ package xray
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/InazumaV/V2bX/api/panel"
 	"github.com/InazumaV/V2bX/conf"
+	"github.com/InazumaV/V2bX/limiter"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/inbound"
 	"github.com/xtls/xray-core/features/outbound"
+	coreConf "github.com/xtls/xray-core/infra/conf"
 )
 
 type DNSConfig struct {
@@ -38,6 +41,57 @@ func (c *Xray) AddNode(tag string, info *panel.NodeInfo, config *conf.Options) e
 	if err != nil {
 		return fmt.Errorf("add outbound error: %s", err)
 	}
+
+	// Process Custom Routes
+	l, _ := limiter.GetLimiter(tag)
+	userRoutes := make(map[string]string)
+	for i := range info.Common.Routes {
+		if info.Common.Routes[i].Action == "route_user" {
+			// Parse outbound config from action_value
+			outboundConf := &coreConf.OutboundDetourConfig{}
+			err := json.Unmarshal([]byte(info.Common.Routes[i].ActionValue), outboundConf)
+			if err != nil {
+				return fmt.Errorf("parse custom outbound error: %s", err)
+			}
+			// Ensure unique tag from remarks, fallback to route id
+			outTag := info.Common.Routes[i].Remarks
+			if outTag == "" {
+				outTag = fmt.Sprintf("route_user_%d", info.Common.Routes[i].Id)
+			}
+			outboundConf.Tag = outTag
+
+			// Build and add outbound
+			builtOutbound, err := outboundConf.Build()
+			if err != nil {
+				return fmt.Errorf("build custom outbound error: %s", err)
+			}
+			err = c.addOutbound(builtOutbound)
+			if err != nil {
+				// if already exists, it's fine for now as we don't have a good way to update
+			}
+
+			// Map UUIDs to this tag
+			var uuids []string
+			if s, ok := info.Common.Routes[i].Match.(string); ok {
+				uuids = []string{s}
+			} else if sl, ok := info.Common.Routes[i].Match.([]string); ok {
+				uuids = sl
+			} else if il, ok := info.Common.Routes[i].Match.([]interface{}); ok {
+				for _, item := range il {
+					if s, ok := item.(string); ok {
+						uuids = append(uuids, s)
+					}
+				}
+			}
+			for _, uuid := range uuids {
+				userRoutes[uuid] = outTag
+			}
+		}
+	}
+	if l != nil {
+		l.UpdateUserRoute(userRoutes)
+	}
+
 	return nil
 }
 
