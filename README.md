@@ -50,6 +50,19 @@ A V2board node server based on multi core, modified from XrayR.
 wget -N https://raw.githubusercontent.com/wyx2685/V2bX-script/master/install.sh && bash install.sh
 ```
 
+### Docker构建
+
+```bash
+# 拉取项目
+git clone https://github.com/wyx2685/V2bX.git && cd V2bX
+# 构建镜像
+docker build -t v2bx:latest .
+# 生成配置文件
+docker run -it --rm -v ./config:/etc/V2bX v2bx:latest generate
+# 启动容器
+docker compose up -d 
+```
+
 ### 手动安装
 
 [手动安装教程](https://v2bx.v-50.me/v2bx/v2bx-xia-zai-he-an-zhuang/install/manual)
