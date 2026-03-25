@@ -1,6 +1,6 @@
 services:
   v2bx:
-    image: xusenhao/v2bx:latest
+    image: v2bx:latest
     restart: unless-stopped
     network_mode: host
     volumes:
