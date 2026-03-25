@@ -1,0 +1,7 @@
+services:
+  v2bx:
+    image: v2bx:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config:/etc/V2bX
