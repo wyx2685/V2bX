@@ -34,6 +34,7 @@ type NodeInfo struct {
 	Trojan      *TrojanNode
 	Tuic        *TuicNode
 	AnyTls      *AnyTlsNode
+	Tsunami     *TsunamiNode
 	Hysteria    *HysteriaNode
 	Hysteria2   *Hysteria2Node
 	Common      *CommonNode
@@ -121,6 +122,15 @@ type TuicNode struct {
 type AnyTlsNode struct {
 	CommonNode
 	PaddingScheme []string `json:"padding_scheme,omitempty"`
+}
+
+type TsunamiNode struct {
+	CommonNode
+	PaddingScheme  []string `json:"padding_scheme,omitempty"`
+	FallbackAddr   string   `json:"fallback_addr,omitempty"`
+	SurgeMode      string   `json:"surge_mode,omitempty"`
+	MaxConnections int      `json:"max_connections,omitempty"`
+	SurgeThreshold int      `json:"surge_threshold,omitempty"`
 }
 
 type HysteriaNode struct {
@@ -243,6 +253,15 @@ func (c *Client) GetNodeInfo() (node *NodeInfo, err error) {
 		}
 		cm = &rsp.CommonNode
 		node.AnyTls = rsp
+		node.Security = Tls
+	case "tsunami":
+		rsp := &TsunamiNode{}
+		err = json.Unmarshal(r.Body(), rsp)
+		if err != nil {
+			return nil, fmt.Errorf("decode tsunami params error: %s", err)
+		}
+		cm = &rsp.CommonNode
+		node.Tsunami = rsp
 		node.Security = Tls
 	case "hysteria":
 		rsp := &HysteriaNode{}

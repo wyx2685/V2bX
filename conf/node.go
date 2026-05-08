@@ -136,6 +136,9 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 	case "hysteria2":
 		o.RawOptions = data
 		return nil
+	case "tsunami":
+		o.RawOptions = data
+		return nil
 	default:
 		o.Core = ""
 		o.RawOptions = data

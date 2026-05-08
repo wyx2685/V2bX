@@ -29,6 +29,9 @@ func (c *CoreConfig) UnmarshalJSON(b []byte) error {
 	case "hysteria2":
 		c.Hysteria2Config = NewHysteria2Config()
 		return json.Unmarshal(b, c.Hysteria2Config)
+	case "tsunami":
+		// tsunami core has no special config parsing
+		return nil
 	}
 	return nil
 }
